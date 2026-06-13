@@ -51,7 +51,13 @@ If you just want to use it:
 ### Homebrew (macOS)
 
 ```sh
-brew tap cshamrick/strobetune
+brew install cshamrick/tap/strobetune
+```
+
+Or tap first, then install by name:
+
+```sh
+brew tap cshamrick/tap
 brew install strobetune
 ```
 
