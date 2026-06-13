@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="strobetune" width="440">
+</p>
+
 # strobetune
 
 An analog-style **strobe tuner** for the terminal, written in Rust.
