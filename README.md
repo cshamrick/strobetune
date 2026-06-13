@@ -46,8 +46,17 @@ persistence and lets the motion read smoothly.
 
 ## Install
 
-If you just want to use it, install the `strobetune` command straight from the
-repo with Cargo — no clone required:
+If you just want to use it:
+
+### Homebrew (macOS)
+
+```sh
+brew install cshamrick/strobetune/strobetune
+```
+
+### Cargo (any platform)
+
+Installs the `strobetune` command straight from the repo — no clone required:
 
 ```sh
 cargo install --git https://github.com/cshamrick/strobetune
