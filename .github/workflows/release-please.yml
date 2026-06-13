@@ -22,35 +22,31 @@ jobs:
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    strategy:
-      matrix:
-        include:
-          - target: aarch64-apple-darwin
-            os: macos-14
-          - target: x86_64-apple-darwin
-            os: macos-13
-    runs-on: ${{ matrix.os }}
+    # Both macOS arches are cross-compiled on a single Apple Silicon runner
+    # (the macOS SDK is universal), which avoids waiting on a separate Intel
+    # runner.
+    runs-on: macos-14
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Add Rust target
-        run: rustup target add ${{ matrix.target }}
+      - name: Add Rust targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
-      - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Package
+      - name: Build and package
         run: |
           set -euo pipefail
           tag="${{ needs.release-please.outputs.tag_name }}"
-          dist="strobetune-${tag}-${{ matrix.target }}"
-          mkdir -p "$dist"
-          cp "target/${{ matrix.target }}/release/strobetune" "$dist/"
-          cp README.md LICENSE "$dist/"
-          tar -czf "${dist}.tar.gz" -C "$dist" .
-          shasum -a 256 "${dist}.tar.gz" | tee "${dist}.tar.gz.sha256"
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --target "$target"
+            dist="strobetune-${tag}-${target}"
+            mkdir -p "$dist"
+            cp "target/${target}/release/strobetune" "$dist/"
+            cp README.md LICENSE "$dist/"
+            tar -czf "${dist}.tar.gz" -C "$dist" .
+            shasum -a 256 "${dist}.tar.gz" | tee "${dist}.tar.gz.sha256"
+          done
 
       - name: Upload binaries to release
         env:
