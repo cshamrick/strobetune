@@ -2,11 +2,11 @@
   <img src="assets/logo.png" alt="strobetune" width="440">
 </p>
 
-<p align="center"><b>An analog-style strobe tuner for your terminal.</b></p>
+<p align="center"><b>An analog-style strobe tuner for guitar, in your terminal.</b></p>
 
-Tune by eye, the way an analog strobe tuner does. A selected note spins a virtual
-reference wheel, your instrument drives a virtual lamp, and the interaction
-between them paints a pattern that:
+Tune your guitar by eye, the way an analog strobe tuner does. A selected note
+spins a virtual reference wheel, your guitar drives a virtual lamp, and the
+interaction between them paints a pattern that:
 
 - **holds still** when the string is in tune,
 - **drifts** one way when you're sharp, the other when you're flat.

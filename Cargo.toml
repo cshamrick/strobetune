@@ -2,7 +2,7 @@
 name = "strobetune"
 version = "0.1.0"
 edition = "2021"
-description = "An analog-style strobe tuner for the terminal (no pitch detection)"
+description = "An analog-style strobe tuner for guitar, in the terminal"
 license = "MIT"
 
 [dependencies]

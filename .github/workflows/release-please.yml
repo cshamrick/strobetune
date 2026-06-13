@@ -94,7 +94,7 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          printf 'class Strobetune < Formula\n  desc "Analog-style strobe tuner for the terminal"\n  homepage "https://github.com/cshamrick/strobetune"\n  version "%s"\n  license "MIT"\n\n  on_arm do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-aarch64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  on_intel do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-x86_64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  def install\n    bin.install "strobetune"\n  end\n\n  test do\n    assert_match "strobetune", shell_output("#{bin}/strobetune --version")\n  end\nend\n' \
+          printf 'class Strobetune < Formula\n  desc "Analog-style strobe tuner for guitar, in the terminal"\n  homepage "https://github.com/cshamrick/strobetune"\n  version "%s"\n  license "MIT"\n\n  on_arm do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-aarch64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  on_intel do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-x86_64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  def install\n    bin.install "strobetune"\n  end\n\n  test do\n    assert_match "strobetune", shell_output("#{bin}/strobetune --version")\n  end\nend\n' \
             "$VERSION" "$TAG" "$TAG" "$ARM_SHA" "$TAG" "$TAG" "$X86_SHA" > Formula/strobetune.rb
 
       - name: Commit and push
