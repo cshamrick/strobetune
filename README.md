@@ -51,7 +51,8 @@ If you just want to use it:
 ### Homebrew (macOS)
 
 ```sh
-brew install cshamrick/strobetune/strobetune
+brew tap cshamrick/strobetune
+brew install strobetune
 ```
 
 ### Cargo (any platform)
