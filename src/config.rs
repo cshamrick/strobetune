@@ -45,16 +45,30 @@ pub const DETECT_MAX_HZ: f32 = 1400.0;
 /// YIN absolute threshold: the first cumulative-mean-normalized dip below this
 /// is taken as the period. Lower biases toward the true fundamental (rejects
 /// octave errors); too low and weak/noisy input won't register.
-pub const DETECT_YIN_THRESHOLD: f32 = 0.12;
+pub const DETECT_YIN_THRESHOLD: f32 = 0.15;
+
+/// Subharmonic correction. After YIN picks a period, a shorter period that is an
+/// integer fraction of it and whose dip is within this margin of the found dip
+/// is treated as the true fundamental. This unwinds octave/harmonic-down errors
+/// (e.g. high E sliding onto the A string it sympathetically rings) while
+/// leaving genuinely-played low strings — whose own low dip is the deepest —
+/// untouched.
+pub const DETECT_SUBHARMONIC_MARGIN: f32 = 0.10;
 
 /// How close (in semitones) the detected pitch must be to a string for it to be
 /// selected. Generous enough for a badly out-of-tune string, tight enough to
 /// reject stray sounds.
 pub const DETECT_TOLERANCE_SEMITONES: f32 = 2.0;
 
-/// Frames a candidate must stay the winner before it is committed (hysteresis,
+/// Frames a candidate must stay the winner before the first lock (hysteresis,
 /// so the selection doesn't flicker mid-pluck or during decay).
 pub const DETECT_HOLD_FRAMES: u32 = 4;
+
+/// Frames a *different* string must stay the winner before it replaces the
+/// current selection. Larger than the initial lock so a brief, ambiguous reading
+/// (e.g. the open A ringing sympathetically while a high E decays) can't yank the
+/// selection away from the string you're actually tuning.
+pub const DETECT_SWITCH_FRAMES: u32 = 16;
 
 // --- Drift-speed colouring ------------------------------------------------
 

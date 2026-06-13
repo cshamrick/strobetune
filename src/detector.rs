@@ -96,7 +96,14 @@ impl StringDetector {
             self.pending = Some(candidate);
             self.hold = 0;
         }
-        if self.hold >= config::DETECT_HOLD_FRAMES {
+
+        // Locking onto a string for the first time is quick; switching away from
+        // an established selection is deliberately stickier.
+        let needed = match self.current {
+            Some(cur) if cur != candidate => config::DETECT_SWITCH_FRAMES,
+            _ => config::DETECT_HOLD_FRAMES,
+        };
+        if self.hold >= needed {
             self.current = Some(candidate);
         }
     }
@@ -146,7 +153,28 @@ impl StringDetector {
             }
             tau += 1;
         }
-        let tau = best?;
+        let tau0 = best?;
+
+        // 3b. Subharmonic correction. The found period can be an integer multiple
+        //     of the true one when a lower note coincides with a played note's
+        //     harmonics (e.g. high E ≈ 3 × A2, so a sympathetically-ringing open
+        //     A drags the estimate down an octave-and-a-fifth). If a shorter
+        //     period — an integer fraction of the found one — has a comparably
+        //     deep dip, it's the real fundamental, so prefer the shortest such.
+        //     A genuinely-played low string has no such shorter dip (its own low
+        //     fundamental is the deepest), so it's left alone.
+        let ceil = (cmnd[tau0] + config::DETECT_SUBHARMONIC_MARGIN)
+            .max(config::DETECT_YIN_THRESHOLD);
+        let mut tau = tau0;
+        for k in 2..=4 {
+            let t = (tau0 as f32 / k as f32).round() as usize;
+            if t < self.tau_min {
+                break;
+            }
+            if cmnd[t] <= ceil && cmnd[t] <= cmnd[t - 1] && cmnd[t] <= cmnd[t + 1] {
+                tau = t;
+            }
+        }
 
         // 4. Parabolic interpolation around the minimum for sub-sample accuracy.
         let refined = if tau > self.tau_min && tau < tau_max {
@@ -249,6 +277,56 @@ mod tests {
             (4.0 * e2, 0.06),
         ];
         assert_eq!(detect(&freqs, &partials), Some(5));
+    }
+
+    /// Feed `partials` for `frames` frames into an existing detector, advancing
+    /// a shared sample clock so segments are phase-continuous.
+    fn feed(det: &mut StringDetector, clock: &mut u64, partials: &[(f32, f32)], frames: usize) {
+        let fs = 48_000.0;
+        for _ in 0..frames {
+            let mut samples = Vec::with_capacity(1024);
+            for _ in 0..1024 {
+                let t = *clock as f32 / fs;
+                samples.push(partials.iter().map(|&(f, a)| a * (2.0 * PI * f * t).sin()).sum());
+                *clock += 1;
+            }
+            det.process(&samples);
+        }
+    }
+
+    // "high E + sympathetic A" and "A + strong harmonics" are nearly identical
+    // waveforms, so they can only be told apart over time: lock onto whichever
+    // came first and resist a brief change. The two tests below pin that down.
+
+    #[test]
+    fn high_e_locked_resists_a_brief_sympathetic_a() {
+        let freqs = freqs_of(0);
+        let e4 = freqs[5];
+        let a2 = freqs[1];
+        let e = [(e4, 0.50), (2.0 * e4, 0.20)];
+        let a = [(a2, 0.40), (2.0 * a2, 0.25), (3.0 * a2, 0.20)];
+
+        let mut det = StringDetector::new(&freqs, 48_000.0);
+        let mut clock = 0u64;
+        feed(&mut det, &mut clock, &e, 25);
+        assert_eq!(det.current(), Some(5), "should lock onto high E");
+        feed(&mut det, &mut clock, &a, 8); // brief — under the switch threshold
+        assert_eq!(det.current(), Some(5), "a brief A shouldn't steal the lock");
+    }
+
+    #[test]
+    fn sustained_new_string_eventually_wins() {
+        let freqs = freqs_of(0);
+        let e4 = freqs[5];
+        let a2 = freqs[1];
+        let e = [(e4, 0.50), (2.0 * e4, 0.20)];
+        let a = [(a2, 0.40), (2.0 * a2, 0.25), (3.0 * a2, 0.20)];
+
+        let mut det = StringDetector::new(&freqs, 48_000.0);
+        let mut clock = 0u64;
+        feed(&mut det, &mut clock, &e, 25);
+        feed(&mut det, &mut clock, &a, 30); // sustained — past the switch threshold
+        assert_eq!(det.current(), Some(1), "a sustained A should win");
     }
 
     #[test]
