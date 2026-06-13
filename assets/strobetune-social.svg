@@ -161,6 +161,6 @@
     <tspan fill="#e6edf3">strobe</tspan><tspan fill="#2dd4bf">tune</tspan>
   </text>
   <text x="640" y="532" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="33" fill="#8b97a8">
-    an analog-style strobe tuner for the terminal
+    an analog-style guitar strobe tuner for your terminal
   </text>
 </svg>
