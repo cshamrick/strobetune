@@ -14,20 +14,23 @@ jobs:
     outputs:
       release_created: ${{ steps.rp.outputs.release_created }}
       tag_name: ${{ steps.rp.outputs.tag_name }}
+      version: ${{ steps.rp.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: rp
 
   # Build and attach macOS binaries only when a release was just created.
+  # Both arches are cross-compiled on one Apple Silicon runner (the macOS SDK is
+  # universal), which avoids waiting on a separate Intel runner.
   build:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    # Both macOS arches are cross-compiled on a single Apple Silicon runner
-    # (the macOS SDK is universal), which avoids waiting on a separate Intel
-    # runner.
     runs-on: macos-14
     permissions:
       contents: write
+    outputs:
+      arm_sha: ${{ steps.pkg.outputs.arm_sha }}
+      x86_sha: ${{ steps.pkg.outputs.x86_sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +38,7 @@ jobs:
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - name: Build and package
+        id: pkg
         run: |
           set -euo pipefail
           tag="${{ needs.release-please.outputs.tag_name }}"
@@ -47,6 +51,8 @@ jobs:
             tar -czf "${dist}.tar.gz" -C "$dist" .
             shasum -a 256 "${dist}.tar.gz" | tee "${dist}.tar.gz.sha256"
           done
+          echo "arm_sha=$(shasum -a 256 "strobetune-${tag}-aarch64-apple-darwin.tar.gz" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "x86_sha=$(shasum -a 256 "strobetune-${tag}-x86_64-apple-darwin.tar.gz" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Upload binaries to release
         env:
@@ -54,3 +60,52 @@ jobs:
         run: |
           gh release upload "${{ needs.release-please.outputs.tag_name }}" \
             strobetune-*.tar.gz strobetune-*.tar.gz.sha256 --clobber
+
+  # Update the Homebrew formula in cshamrick/homebrew-tap to the new release.
+  # Requires a HOMEBREW_TAP_TOKEN secret (a PAT with contents:write on the tap);
+  # without it this job skips cleanly rather than failing the release.
+  publish-formula:
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      VERSION: ${{ needs.release-please.outputs.version }}
+      ARM_SHA: ${{ needs.build.outputs.arm_sha }}
+      X86_SHA: ${{ needs.build.outputs.x86_sha }}
+    steps:
+      - name: Skip if no tap token
+        id: guard
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set — skipping formula update." >> "$GITHUB_STEP_SUMMARY"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout tap
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: cshamrick/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Regenerate formula
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          printf 'class Strobetune < Formula\n  desc "Analog-style strobe tuner for the terminal"\n  homepage "https://github.com/cshamrick/strobetune"\n  version "%s"\n  license "MIT"\n\n  on_arm do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-aarch64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  on_intel do\n    url "https://github.com/cshamrick/strobetune/releases/download/%s/strobetune-%s-x86_64-apple-darwin.tar.gz"\n    sha256 "%s"\n  end\n\n  def install\n    bin.install "strobetune"\n  end\n\n  test do\n    assert_match "strobetune", shell_output("#{bin}/strobetune --version")\n  end\nend\n' \
+            "$VERSION" "$TAG" "$TAG" "$ARM_SHA" "$TAG" "$TAG" "$X86_SHA" > Formula/strobetune.rb
+
+      - name: Commit and push
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already up to date."
+          else
+            git commit -am "chore: strobetune ${VERSION}"
+            git push
+          fi
