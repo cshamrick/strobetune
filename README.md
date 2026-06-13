@@ -122,3 +122,8 @@ Headless tests cover the parts that don't need audio hardware:
 This models the general analog strobe-tuner *principle*. It is not affiliated
 with, compatible with, or equivalent to any commercial tuner product, and uses
 original naming and visual design.
+
+## License
+
+Released under the [MIT License](LICENSE) — free to use, modify, and distribute
+without restriction.
