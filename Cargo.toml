@@ -1,0 +1,16 @@
+[package]
+name = "strobetune"
+version = "0.1.0"
+edition = "2021"
+description = "An analog-style strobe tuner for the terminal (no pitch detection)"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+cpal = "0.18"
+# ratatui pulls in (and re-exports) crossterm via its default backend feature,
+# so we use ratatui::crossterm rather than depending on crossterm separately.
+ratatui = "0.30"
+
+[profile.release]
+opt-level = 3
+lto = true
