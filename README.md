@@ -31,17 +31,43 @@ period matches the wheel period, the bright moments always land in the same bin
 at the beat frequency, so the band slides. Per-frame decay gives visual
 persistence and lets the motion read smoothly.
 
-## Run
+## Prerequisites
+
+- **Rust toolchain** (stable) — install from [rustup.rs](https://rustup.rs).
+- **An audio input device** — strobetune listens to your system's default input
+  (built-in mic, audio interface, etc.).
+- **A truecolor terminal** (24-bit) for the smoothest strobe colours — most
+  modern terminals qualify.
+- **Linux only:** ALSA development headers are needed to build the audio
+  backend — e.g. `sudo apt install libasound2-dev` (Debian/Ubuntu) or
+  `sudo dnf install alsa-lib-devel` (Fedora).
+- **macOS:** the first run prompts for microphone access; grant it under
+  System Settings → Privacy & Security → Microphone.
+
+## Install
+
+If you just want to use it, install the `strobetune` command straight from the
+repo with Cargo — no clone required:
 
 ```sh
-cargo run --release
+cargo install --git https://github.com/cshamrick/strobetune
 ```
 
-Or install the `strobetune` command:
+Then run it from anywhere:
 
 ```sh
-cargo install --path .
 strobetune
+```
+
+## Build from source
+
+For development or contributing:
+
+```sh
+git clone https://github.com/cshamrick/strobetune
+cd strobetune
+cargo run --release     # launch
+cargo test              # run the headless tests
 ```
 
 ## Controls
