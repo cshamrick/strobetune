@@ -22,7 +22,37 @@ use ratatui::crossterm::event::{self, Event};
 use app::App;
 use audio::AudioHandle;
 
+const HELP: &str = "\
+strobetune — an analog-style strobe tuner for the terminal
+
+Usage: strobetune [options]
+
+Options:
+  -h, --help       Show this help and exit
+  -V, --version    Show version and exit
+
+Controls (while running):
+  1-6  select string        a      toggle auto string detect
+  t/T  next / prev tuning    [ ]    transpose by a semitone
+  0    reset transpose       q      quit
+";
+
 fn main() -> io::Result<()> {
+    let args = std::env::args().skip(1);
+    for arg in args {
+        match arg.as_str() {
+            "-h" | "--help" => {
+                print!("{HELP}");
+                return Ok(());
+            }
+            "-V" | "--version" => {
+                println!("strobetune {}", env!("CARGO_PKG_VERSION"));
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+
     // Start audio first so its status (device name or failure reason) is shown.
     let audio = AudioHandle::start();
     let mut app = App::new(audio);
