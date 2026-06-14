@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/cshamrick/strobetune/compare/v0.2.0...v0.2.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* stabilize string detection against harmonic confusion ([64c6db4](https://github.com/cshamrick/strobetune/commit/64c6db4876f110b0c7ea5c214d5ec40130577a80))
+
 ## [0.2.0](https://github.com/cshamrick/strobetune/compare/v0.1.0...v0.2.0) (2026-06-13)
 
 
